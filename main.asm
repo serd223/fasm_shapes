@@ -5,12 +5,15 @@ mov ah, 0
 mov al, 0x12
 int 0x10
 
+mov BYTE [draw_color], 7
 mov ax, 80
 mov bx, 50
 mov cx, 200
 mov dx, 50
 call draw_rec
 
+
+mov BYTE [draw_color], 8
 mov ax, 100
 mov bx, 200
 mov cx, 100
@@ -40,7 +43,7 @@ draw_rec:
         mov [counter_h], dx
 
         mov ah, 0xc
-        mov al, 7
+        mov al, [draw_color]
 .again_y:
         dec WORD [counter_h]
         
@@ -69,6 +72,9 @@ draw_rec:
 times 510-($ - $$) db 0
 ;; magic bytes to indicate the end of the boot sector
 db 0x55, 0xaa
+
+;; global param
+draw_color: db 0
 
 ;; variables
 counter_w: dw 0
