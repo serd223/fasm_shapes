@@ -5,30 +5,30 @@ mov ah, 0
 mov al, 0x12
 int 0x10
 
-mov BYTE [draw_color], 7
-mov ax, 80
-mov bx, 50
-mov cx, 200
-mov dx, 50
-call draw_rec
+start:
+        inc BYTE [draw_color]
+        mov ax, 80
+        mov bx, 50
+        mov cx, 200
+        mov dx, 50
+        call draw_rec
 
 
-mov BYTE [draw_color], 8
-mov ax, 100
-mov bx, 200
-mov cx, 100
-mov dx, 70
-call draw_rec
+        inc BYTE [draw_color]
+        mov ax, 100
+        mov bx, 200
+        mov cx, 100
+        mov dx, 70
+        call draw_rec
 
-;; green pixel to make sure we exited the draw_rec procedure(s)
-mov ah, 0xc
-mov al, 10
-mov cx, 50
-mov dx, 50
-int 0x10
+        ;; green pixel to make sure we exited the draw_rec procedure(s)
+        mov ah, 0xc
+        mov al, 10
+        mov cx, 50
+        mov dx, 50
+        int 0x10
 
-;; hang forever
-jmp $
+jmp start
 
 ;: Args:
 ;;   ax: left
