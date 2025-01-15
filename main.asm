@@ -36,7 +36,7 @@ draw_rec:
 
         mov [left], ax
         mov [top], bx
-        mov [width], cx
+        mov bx, cx
         mov [counter_h], dx
 
         mov ah, 0xc
@@ -44,7 +44,6 @@ draw_rec:
 .again_y:
         dec WORD [counter_h]
         
-        mov bx, WORD [width]
         mov WORD [counter_w], bx
         .again_x:
 
@@ -72,7 +71,6 @@ times 510-($ - $$) db 0
 db 0x55, 0xaa
 
 ;; variables
-width: dw 0
 counter_w: dw 0
 counter_h: dw 0
 left: dw 0
