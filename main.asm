@@ -27,9 +27,7 @@ int 0x10
 ;; hang forever
 jmp $
 
-;; since this procedure makes use of BIOS interrupts, it needs to be inside the
-;; 512 byte bootloader
-;; Args:
+;: Args:
 ;;   ax: left
 ;;   bx: top
 ;;   cx: width
@@ -68,7 +66,7 @@ draw_rec:
 ;.over_y
         ret
 
-;; create 512 byte bootloader
+;; fill the 512 bytes of the bootloader
 times 510-($ - $$) db 0
 ;; magic bytes to indicate the end of the boot sector
 db 0x55, 0xaa
