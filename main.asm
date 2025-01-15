@@ -7,7 +7,7 @@ int 0x10
 
 start:
         inc BYTE [draw_color]
-        mov ax, 80
+        mov ax, 110
         mov bx, 50
         mov cx, 200
         mov dx, 50
@@ -21,6 +21,14 @@ start:
         mov dx, 70
         call draw_rec
 
+
+        inc BYTE [draw_color]
+        mov cx, 50
+        mov dx, 70
+        mov ax, 100
+        mov bx, 120
+        call draw_line
+
         ;; green pixel to make sure we exited the draw_rec procedure(s)
         mov ah, 0xc
         mov al, 10
@@ -29,6 +37,53 @@ start:
         int 0x10
 
 jmp start
+
+;; Args:
+;:   cx: x0
+;;   dx: y0 
+;;   ax: x1
+;;   bx: y1
+;;   Assumes that x1 > x0 and y1 > y0
+draw_line:
+        ;; https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
+        ;; The following is a translation of the first pseudo-code example from the link above
+        ;; (Source is in the `Algorithm for integer arithmetic` section)
+
+        sub bx, dx      ;; bx => dy = y1 - y0
+        add bx, bx      ;; bx => 2dy = dy + dy
+        mov [d_y2], bx  ;; [d_y2] => 2dy
+        sub bx, ax      ;; bx => 2dy - x1
+        add bx, cx      ;; bx => 2dy - x1 + x0 = 2dy - (x1 - x0) = 2dy - dx
+        mov [D], bx     ;; [D] => 2dy - dx
+        mov bx, ax      ;; bx => x1
+        sub ax, cx      ;; ax => dx = x1 - x0
+        add ax, ax      ;; ax => 2dx = dx + dx
+        mov [d_x2], ax  ;; [d_x2] => 2dx
+
+
+        ;; use cx and dx as the iterators
+        .loop:
+                ;; cx and dx contain the right values
+                mov ah, 0xc
+                mov al, [draw_color]
+                int 0x10
+
+                
+                cmp WORD [D], 0
+                jle .skip ;; if D > 0
+                        inc dx
+                        mov ax, [d_x2]
+                        sub WORD [D], ax
+                .skip:
+                mov ax, [d_y2]
+                add WORD [D], ax
+
+                inc cx
+                cmp cx, bx
+                jle .loop
+
+        ret
+
 
 ;: Args:
 ;;   ax: left
@@ -77,7 +132,13 @@ db 0x55, 0xaa
 draw_color: db 0
 
 ;; variables
+;; draw_rec
 counter_w: dw 0
 counter_h: dw 0
 left: dw 0
 top: dw 0
+
+;; draw_line
+D: dw 0
+d_y2: dw 0
+d_x2: dw 0
