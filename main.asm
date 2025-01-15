@@ -1,9 +1,18 @@
+ORG   0x7c00
 format binary
 
 ;; set 640 x 480 16 color VGA display
 mov ah, 0
 mov al, 0x12
 int 0x10
+
+mov BYTE [draw_color], 5
+
+;; write text
+mov si, hello_world
+mov dh, 1
+mov dl, 1
+call write_string
 
 start:
         inc BYTE [draw_color]
@@ -28,14 +37,6 @@ start:
         mov ax, 100
         mov bx, 120
         call draw_line
-
-        ;; green pixel to make sure we exited the draw_rec procedure(s)
-        mov ah, 0xc
-        mov al, 10
-        mov cx, 50
-        mov dx, 50
-        int 0x10
-
 jmp start
 
 ;; Args:
@@ -123,6 +124,45 @@ draw_rec:
 ;.over_y
         ret
 
+;; Args:
+;;   si: zero-terminated string
+;;   dh: Cursor row
+;;   dl: Cursor column
+write_string:
+        mov WORD [counter], 0
+        ;; put cursor in specified position
+        mov ah, 0x2
+        xor bx, bx
+        int 0x10
+.loop:
+        ;; print current char
+        mov ah, 0x9
+
+        mov bx, si
+        add bx, [counter]
+        mov al, [bx]
+        ;; if char == '\0', break out of the loop
+        cmp al, 0
+        je .over
+
+        xor bx, bx
+        mov bl, [draw_color]
+        mov cx, 1
+        int 0x10
+
+        ;; adjust cursor
+        inc dl
+        mov ah, 0x2
+        xor bx, bx
+        int 0x10
+
+        inc WORD [counter]
+        jmp .loop
+.over:
+        ret
+
+hello_world: db "Hello, World!", 0
+
 ;; fill the 512 bytes of the bootloader
 times 510-($ - $$) db 0
 ;; magic bytes to indicate the end of the boot sector
@@ -140,3 +180,7 @@ top: dw 0
 D: dw 0
 d_y2: dw 0
 d_x2: dw 0
+
+;; write_string
+len: dw 0
+counter: dw 0
