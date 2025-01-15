@@ -93,32 +93,32 @@ draw_line:
 draw_rec:
 
         mov [left], ax
+        add dx, bx
         mov [top], bx
         mov bx, cx
-        mov [counter_h], dx
+        mov cx, ax
 
         mov ah, 0xc
         mov al, [draw_color]
 .again_y:
-        dec WORD [counter_h]
+        ;; dx: current y
+        ;; cx: current x
+        ;; bx: width
+        ;; ax: used for draw call
         
-        mov WORD [counter_w], bx
+        dec dx
+        
+        add cx, bx
         .again_x:
-
-                dec WORD [counter_w]
-                mov cx, WORD [left]
-                add cx, WORD [counter_w]
-
-                mov dx, WORD [top]
-                add dx, WORD [counter_h]
+                dec cx
 
                 int 0x10
 
-                cmp WORD [counter_w], 0
+                cmp cx, [left]
                 jg .again_x
         ;.over_x
 
-        cmp WORD [counter_h], 0
+        cmp dx, [top]
         jg .again_y
 ;.over_y
         ret
@@ -133,8 +133,6 @@ draw_color: db 0
 
 ;; variables
 ;; draw_rec
-counter_w: dw 0
-counter_h: dw 0
 left: dw 0
 top: dw 0
 
