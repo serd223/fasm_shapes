@@ -20,7 +20,7 @@ start:
         mov bx, 50
         mov cx, 200
         mov dx, 50
-        call draw_rec
+        call draw_rect
 
 
         inc BYTE [draw_color]
@@ -28,7 +28,7 @@ start:
         mov bx, 200
         mov cx, 100
         mov dx, 70
-        call draw_rec
+        call draw_rect
 
 
         inc BYTE [draw_color]
@@ -39,12 +39,14 @@ start:
         call draw_line
 jmp start
 
-;; Args:
+;; Input:
 ;:   cx: x0
 ;;   dx: y0 
 ;;   ax: x1
 ;;   bx: y1
-;;   Assumes that x1 > x0 and y1 > y0
+;; Output: none
+;; Destroys registers: ax, bx, cx, dx, si, di
+;; Note: Assumes that x1 > x0 and y1 > y0
 draw_line:
         ;; https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
         ;; The following is a translation of the first pseudo-code example from the link above
@@ -52,14 +54,13 @@ draw_line:
 
         sub bx, dx      ;; bx => dy = y1 - y0
         add bx, bx      ;; bx => 2dy = dy + dy
-        mov [d_y2], bx  ;; [d_y2] => 2dy
-        sub bx, ax      ;; bx => 2dy - x1
-        add bx, cx      ;; bx => 2dy - x1 + x0 = 2dy - (x1 - x0) = 2dy - dx
-        mov [D], bx     ;; [D] => 2dy - dx
+        mov si, bx      ;; si => 2dy
         mov bx, ax      ;; bx => x1
         sub ax, cx      ;; ax => dx = x1 - x0
+        mov [D], si     ;; [D] => 2dy
+        sub [D], ax     ;; [D] => 2dy - dx
         add ax, ax      ;; ax => 2dx = dx + dx
-        mov [d_x2], ax  ;; [d_x2] => 2dx
+        mov di, ax      ;; di => 2dx
 
 
         ;; use cx and dx as the iterators
@@ -69,15 +70,14 @@ draw_line:
                 mov al, [draw_color]
                 int 0x10
 
-                
+                ;; if D > 0 {
                 cmp WORD [D], 0
-                jle .skip ;; if D > 0
+                jle .skip
                         inc dx
-                        mov ax, [d_x2]
-                        sub WORD [D], ax
+                        sub WORD [D], di
                 .skip:
-                mov ax, [d_y2]
-                add WORD [D], ax
+                ;; }
+                add WORD [D], si
 
                 inc cx
                 cmp cx, bx
@@ -86,16 +86,18 @@ draw_line:
         ret
 
 
-;: Args:
+;: Input:
 ;;   ax: left
 ;;   bx: top
 ;;   cx: width
 ;;   dx: height
-draw_rec:
+;; Output: none
+;; Destroys registers: ax, bx, cx, dx, si, di
+draw_rect:
 
-        mov [left], ax
+        mov si, ax
         add dx, bx
-        mov [top], bx
+        mov di, bx
         mov bx, cx
         mov cx, ax
 
@@ -115,21 +117,23 @@ draw_rec:
 
                 int 0x10
 
-                cmp cx, [left]
+                cmp cx, si
                 jg .again_x
         ;.over_x
 
-        cmp dx, [top]
+        cmp dx, di
         jg .again_y
 ;.over_y
         ret
 
-;; Args:
+;; Input:
 ;;   si: zero-terminated string
 ;;   dh: Cursor row
 ;;   dl: Cursor column
+;; Output: none
+;; Destroys registers: ax, bx, cx, dx, di
 write_string:
-        mov WORD [counter], 0
+        mov di, 0
         ;; put cursor in specified position
         mov ah, 0x2
         xor bx, bx
@@ -139,7 +143,7 @@ write_string:
         mov ah, 0x9
 
         mov bx, si
-        add bx, [counter]
+        add bx, di
         mov al, [bx]
         ;; if char == '\0', break out of the loop
         cmp al, 0
@@ -156,7 +160,7 @@ write_string:
         xor bx, bx
         int 0x10
 
-        inc WORD [counter]
+        inc di
         jmp .loop
 .over:
         ret
@@ -172,15 +176,5 @@ db 0x55, 0xaa
 draw_color: db 0
 
 ;; variables
-;; draw_rec
-left: dw 0
-top: dw 0
-
 ;; draw_line
 D: dw 0
-d_y2: dw 0
-d_x2: dw 0
-
-;; write_string
-len: dw 0
-counter: dw 0
