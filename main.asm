@@ -74,7 +74,7 @@ draw_line:
         sub ax, cx            ;; ax => dx = x1 - x0
         mov bx, ax            ;; bx => dx
         mov di, cx            ;; di => x0
-        mov cl, 1             ;; if dy >= 0 { flag = 1 }
+        mov cl, 1             ;; if dy >= 0 { sign = 1 }
         cmp si, 0             ;; 
         jge .over             ;;
         neg si                ;;
@@ -90,7 +90,7 @@ draw_line:
         add cx, cx            ;; cx => 2dx
         sub cx, si            ;; cx => 2dx - abs(2dy)
         mov dx, si            ;; dx => abs(2dy)
-        sub dx, bx            ;; dx => 2dy - dx
+        sub dx, bx            ;; dx => (2dy) - dx
 
         mov al, [draw_color]
         .loop:
