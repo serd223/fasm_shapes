@@ -69,11 +69,11 @@ draw_line:
         mov di, ax      ;; di => 2dx
 
 
+        mov ah, 0xc
+        mov al, [draw_color]
         ;; use cx and dx as the iterators
         .loop:
                 ;; cx and dx contain the right values
-                mov ah, 0xc
-                mov al, [draw_color]
                 int 0x10
 
                 ;; if D > 0 {
