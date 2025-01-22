@@ -68,52 +68,55 @@ draw_line:
         xchg bx, dx
         .x_if_over:
 
-        sub bx, dx      ;; bx => dy = y1 - y0
-        add bx, bx      ;; bx => 2dy = dy + dy
-        mov si, bx      ;; si => 2dy
-        mov bx, ax      ;; bx => x1
-        sub ax, cx      ;; ax => dx = x1 - x0
-        add ax, ax      ;; ax => 2dx = dx + dx
-        mov di, ax      ;; di => 2dx
-        mov BYTE [flag], 1
-        cmp si, 0
-        jge .over
-        neg si
-        mov BYTE [flag], -1
-        .over:
+        sub bx, dx            ;; bx => dy = y1 - y0
+        add bx, bx            ;; bx => 2dy = dy + dy
+        mov si, bx            ;; si => 2dy
+        sub ax, cx            ;; ax => dx = x1 - x0
+        mov bx, ax            ;; bx => dx
+        mov di, cx            ;; di => x0
+        mov cl, 1             ;; if dy >= 0 { flag = 1 }
+        cmp si, 0             ;; 
+        jge .over             ;;
+        neg si                ;;
+        mov cl, -1            ;; else if dy < 0 { si = -si; sign = -1 }
+        .over:                ;;
 
-        sub di, si
-        mov [D], si     ;; [D] => 2dy
-        sub [D], ax     ;; [D] => 2dy - dx
+        mov ax, dx            ;; ax => y0
+        mov dx, display_width ;; dx => display_width
+        mul dx                ;; ax => y0 * display_width; dx => 0 (most of the time)
+        add di, ax            ;; di => y0 * display_width + x0
+        mov ah, cl            ;; ah => sign
+        mov cx, bx            ;; cx => dx
+        add cx, cx            ;; cx => 2dx
+        sub cx, si            ;; cx => 2dx - abs(2dy)
+        mov dx, si            ;; dx => abs(2dy)
+        sub dx, bx            ;; dx => 2dy - dx
 
-        mov ah, 0xc
         mov al, [draw_color]
-        ;; use cx and dx as the iterators
         .loop:
-                ;; cx and dx contain the right values
-                int 0x10
+                mov [es:di], al
 
-                ;; if D > 0 {
-                cmp WORD [D], 0
+                cmp dx, 0
                 jle .neg
-                        cmp BYTE [flag], 0
+                        cmp ah, 0
                         jl .flag_neg
                         jmp .flag_pos
                         .flag_neg:
-                                dec dx
+                                sub di, display_width ;; go up
                                 jmp .flag_over
                         .flag_pos:
-                                inc dx
+                                add di, display_width ;; go down
                         .flag_over:
-                        sub WORD [D], di
+                        sub dx, cx
                         jmp .over_if
                 .neg:
-                        add WORD [D], si
+                        add dx, si
                 .over_if:
 
-                inc cx
-                cmp cx, bx
-                jle .loop
+                inc di ;; go right
+                dec bx
+                cmp bx, 0
+                jg .loop
 
         ret
 
@@ -207,8 +210,3 @@ db 0x55, 0xaa
 
 ;; global param
 draw_color: db 0
-
-;; variables
-;; draw_line
-D: dw 0
-flag: db 0
