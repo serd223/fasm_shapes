@@ -1,4 +1,4 @@
-ORG   0x7c00
+ORG 0x7c00
 format binary
 
 ;; set 320 x 200 256 color VGA display
@@ -27,7 +27,6 @@ start:
         mov dx, 50
         call draw_rect
 
-
         inc BYTE [draw_color]
         mov ax, 100
         mov bx, 130
@@ -36,38 +35,56 @@ start:
         call draw_rect
 
         inc BYTE [draw_color]
-        mov cx, 60
-        mov dx, 100
         mov ax, 300
         mov bx, 120
+        mov cx, 60
+        mov dx, 100
+        call draw_line
+
+        inc BYTE [draw_color]
+        mov ax, 60
+        mov bx, 120
+        mov cx, 300
+        mov dx, 100
         call draw_line
 
 
 jmp start
 
 ;; Input:
-;:   cx: x0
-;;   dx: y0 
 ;;   ax: x1
 ;;   bx: y1
+;:   cx: x0
+;;   dx: y0 
 ;; Output: none
 ;; Destroys registers: ax, bx, cx, dx, si, di
-;; Note: Assumes that x1 > x0 and y1 > y0
 draw_line:
         ;; https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
-        ;; The following is a translation of the first pseudo-code example from the link above
-        ;; (Source is in the `Algorithm for integer arithmetic` section)
+
+        ;; make sure x1 > x0
+        cmp ax, cx
+        jge .x_if_over
+        xchg ax, cx
+        xchg bx, dx
+        .x_if_over:
 
         sub bx, dx      ;; bx => dy = y1 - y0
         add bx, bx      ;; bx => 2dy = dy + dy
         mov si, bx      ;; si => 2dy
         mov bx, ax      ;; bx => x1
         sub ax, cx      ;; ax => dx = x1 - x0
-        mov [D], si     ;; [D] => 2dy
-        sub [D], ax     ;; [D] => 2dy - dx
         add ax, ax      ;; ax => 2dx = dx + dx
         mov di, ax      ;; di => 2dx
+        mov BYTE [flag], 1
+        cmp si, 0
+        jge .over
+        neg si
+        mov BYTE [flag], -1
+        .over:
 
+        sub di, si
+        mov [D], si     ;; [D] => 2dy
+        sub [D], ax     ;; [D] => 2dy - dx
 
         mov ah, 0xc
         mov al, [draw_color]
@@ -78,12 +95,21 @@ draw_line:
 
                 ;; if D > 0 {
                 cmp WORD [D], 0
-                jle .skip
-                        inc dx
+                jle .neg
+                        cmp BYTE [flag], 0
+                        jl .flag_neg
+                        jmp .flag_pos
+                        .flag_neg:
+                                dec dx
+                                jmp .flag_over
+                        .flag_pos:
+                                inc dx
+                        .flag_over:
                         sub WORD [D], di
-                .skip:
-                ;; }
-                add WORD [D], si
+                        jmp .over_if
+                .neg:
+                        add WORD [D], si
+                .over_if:
 
                 inc cx
                 cmp cx, bx
@@ -185,3 +211,4 @@ draw_color: db 0
 ;; variables
 ;; draw_line
 D: dw 0
+flag: db 0
