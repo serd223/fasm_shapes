@@ -127,7 +127,7 @@ draw_line:
 ;;   cx: width
 ;;   dx: height
 ;; Output: none
-;; Destroys registers: ax, bx, cx, dx, di
+;; Destroys registers: ax, bx, dx, di
 draw_rect:
         mov di, dx  ;; cache dx
         xchg ax, bx
@@ -135,33 +135,30 @@ draw_rect:
         mul dx      ;; mul puts the high part of the result into dx, that is
                     ;; why we cached it earlier
         add ax, bx
-        mov dx, di ;; restore dx
-        mov di, ax ;; pointer to top left pixel
+        mov dx, di  ;; restore dx
+        mov di, ax  ;; pointer to top left pixel
         ;; di = y * screen_width + x
 
-        mov bx, cx
-        ;; ax = di
-        ;; bx = width
+        mov al, [draw_color]
         ;; cx = width
         ;; dx = height
-        mov al, [draw_color]
 .again_y:
         dec dx
         cmp dx, 0
-        jle .over_y
-        add di, display_width
+        jl .over_y
 
-        mov cx, bx
+        mov bx, cx
         .again_x:
-                cmp cx, 0
+                cmp bx, 0
                 jle .over_x
-                dec cx
+                dec bx
 
                 mov [es:di], al
                 inc di
                 jmp .again_x
         .over_x:
-        sub di, bx
+        add di, display_width
+        sub di, cx
         jmp .again_y
 .over_y:
         ret
