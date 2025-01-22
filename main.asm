@@ -90,7 +90,7 @@ draw_line:
         add cx, cx            ;; cx => 2dx
         sub cx, si            ;; cx => 2dx - abs(2dy)
         mov dx, si            ;; dx => abs(2dy)
-        sub dx, bx            ;; dx => (2dy) - dx
+        sub dx, bx            ;; dx => abs(2dy) - dx
 
         mov al, [draw_color]
         .loop:
@@ -153,15 +153,15 @@ draw_rect:
 
         mov cx, bx
         .again_x:
-                dec cx
                 cmp cx, 0
                 jle .over_x
+                dec cx
 
-                add di, cx
                 mov [es:di], al
-                sub di, cx
+                inc di
                 jmp .again_x
         .over_x:
+        sub di, bx
         jmp .again_y
 .over_y:
         ret
