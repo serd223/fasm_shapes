@@ -1,13 +1,18 @@
 ORG   0x7c00
 format binary
 
-;; set 640 x 480 16 color VGA display
+;; set 320 x 200 256 color VGA display
 mov ah, 0
-mov al, 0x12
+mov al, 0x13
 int 0x10
+display_width equ 320
+
+;; framebuffer is from 0xA000:0000 to 0xA000:ffff
+;; use es to index into the buffer
+mov dx, 0xA000
+mov es, dx
 
 mov BYTE [draw_color], 5
-
 ;; write text
 mov si, hello_world
 mov dh, 1
@@ -16,27 +21,28 @@ call write_string
 
 start:
         inc BYTE [draw_color]
-        mov ax, 110
-        mov bx, 50
-        mov cx, 200
+        mov ax, 50
+        mov bx, 30
+        mov cx, 100
         mov dx, 50
         call draw_rect
 
 
         inc BYTE [draw_color]
         mov ax, 100
-        mov bx, 200
-        mov cx, 100
-        mov dx, 70
+        mov bx, 130
+        mov cx, 200
+        mov dx, 69
         call draw_rect
 
-
         inc BYTE [draw_color]
-        mov cx, 50
-        mov dx, 70
-        mov ax, 100
+        mov cx, 60
+        mov dx, 100
+        mov ax, 300
         mov bx, 120
         call draw_line
+
+
 jmp start
 
 ;; Input:
@@ -92,38 +98,43 @@ draw_line:
 ;;   cx: width
 ;;   dx: height
 ;; Output: none
-;; Destroys registers: ax, bx, cx, dx, si, di
+;; Destroys registers: ax, bx, cx, dx, di
 draw_rect:
+        mov di, dx  ;; cache dx
+        xchg ax, bx
+        mov dx, display_width
+        mul dx      ;; mul puts the high part of the result into dx, that is
+                    ;; why we cached it earlier
+        add ax, bx
+        mov dx, di ;; restore dx
+        mov di, ax ;; pointer to top left pixel
+        ;; di = y * screen_width + x
 
-        mov si, ax
-        add dx, bx
-        mov di, bx
         mov bx, cx
-        mov cx, ax
-
-        mov ah, 0xc
+        ;; ax = di
+        ;; bx = width
+        ;; cx = width
+        ;; dx = height
         mov al, [draw_color]
 .again_y:
-        ;; dx: current y
-        ;; cx: current x
-        ;; bx: width
-        ;; ax: used for draw call
-        
         dec dx
-        
-        add cx, bx
+        cmp dx, 0
+        jle .over_y
+        add di, display_width
+
+        mov cx, bx
         .again_x:
                 dec cx
+                cmp cx, 0
+                jle .over_x
 
-                int 0x10
-
-                cmp cx, si
-                jg .again_x
-        ;.over_x
-
-        cmp dx, di
-        jg .again_y
-;.over_y
+                add di, cx
+                mov [es:di], al
+                sub di, cx
+                jmp .again_x
+        .over_x:
+        jmp .again_y
+.over_y:
         ret
 
 ;; Input:
