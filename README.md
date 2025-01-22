@@ -2,8 +2,9 @@
 ![screenshot](github/screenshot.png)
 
 This program makes use of the 512 byte boot sector and BIOS interrupts to render
-basic shapes on a 640x480 16 color VGA display.
-The example contains flashing lights.
+basic shapes on a 320x200 256 color VGA display.
+
+WARNING!: The example contains flashing lights.
 
 # Build Instructions
 
