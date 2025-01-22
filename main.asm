@@ -131,9 +131,8 @@ draw_rect:
 ;;   dh: Cursor row
 ;;   dl: Cursor column
 ;; Output: none
-;; Destroys registers: ax, bx, cx, dx, di
+;; Destroys registers: ax, bx, cx, dx, si
 write_string:
-        mov di, 0
         ;; put cursor in specified position
         mov ah, 0x2
         xor bx, bx
@@ -142,14 +141,11 @@ write_string:
         ;; print current char
         mov ah, 0x9
 
-        mov bx, si
-        add bx, di
-        mov al, [bx]
+        mov al, [si]
         ;; if char == '\0', break out of the loop
         cmp al, 0
         je .over
 
-        xor bx, bx
         mov bl, [draw_color]
         mov cx, 1
         int 0x10
@@ -160,7 +156,7 @@ write_string:
         xor bx, bx
         int 0x10
 
-        inc di
+        inc si
         jmp .loop
 .over:
         ret
