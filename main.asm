@@ -85,12 +85,12 @@ draw_line:
         mov dx, display_width   ;; dx => display_width
         mul dx                  ;; ax => y0 * display_width; dx => 0 (most of the time)
         add di, ax              ;; di => y0 * display_width + x0
-        mov ah, 1               ;; ah => sign_y
+        mov ah, 1               ;; ah => sign_x
         cmp si, 0               ;; if x1 < x0 { sign_x = -1 } else { sign_x = 1 }
-        jge .sign_y_over
+        jge .abs_d_x_over
         neg si
         mov ah, -1
-        .sign_y_over:           ;; si => abs(x1 - x0)
+        .abs_d_x_over:          ;; si => abs(x1 - x0)
         mov dx, si              ;; dx => d_x = abs(x1 - x0)
         sub bx, cx              ;; bx => abs(y1 - y0) (always positive)
         mov ch, bl              ;; ch => abs(y1 - y0) (since the resolution is low, the y pos should fit in 8 bits)
@@ -102,65 +102,66 @@ draw_line:
         .loop:
                 mov [es:di], al ;; plot(x0, y0)
                 push di         ;; [pixel]
-                mov di, bx
-                add bx, bx
-                push cx         ;; [dy|dyi][pixel]
-                xor ch, ch
-                neg cx
+                mov di, bx      ;; di => error
+                add bx, bx      ;; bx => 2e = error + error
+                push cx         ;; [dyi|-dy][pixel]
+                xor ch, ch      ;; cx => -d_y
+                neg cx          ;; cx => d_y
                 cmp bx, cx
-                pop cx          ;; [pixel]
+                pop cx          ;; cx => dyi|-dy; stack => [pixel]
                 jge .e2_dy_ge
                 jmp .e2_dy_else
-                .e2_dy_ge:
+                .e2_dy_ge: ;; if 2e >= d_y
                         cmp si, 0
                         jle .over
-                        push cx         ;; [dyi|dy][pixel]
-                        xor ch, ch
+
+                        push cx         ;; [dyi|-dy][pixel]
+                        xor ch, ch      ;; cx => -dy
                         sub di, cx      ;; error -= -dy := error += dy
-                        pop cx          ;; [pixel]
-                        mov bx, di
-                        pop di          ;; []
+                        pop cx          ;; cx => dyi|-dy; stack => [pixel]
+                        mov bx, di      ;; bx => error
+                        pop di          ;; di => pixel; stack => []
                         cmp ah, 0
                         jge .sign_x_pos
                         jmp .sign_x_neg
                         .sign_x_pos:
-                                inc di
+                                inc di  ;; go right
                                 dec si
                                 jmp .sign_x_over
                         .sign_x_neg:
-                                dec di
+                                dec di  ;; go left
                                 dec si
                         .sign_x_over:
                         jmp .e2_dy_over
                 .e2_dy_else:
-                        mov bx, di
-                        pop di          ;; []
+                        mov bx, di ;; bx => error
+                        pop di     ;; di => pixel; stack => []
                 .e2_dy_over:
                 push di         ;; [pixel]
-                mov di, bx
-                add bx, bx
+                mov di, bx      ;; di => error
+                add bx, bx      ;; bx => 2e = error
                 cmp bx, dx
                 jle .e2_dx_le
                 jmp .e2_dx_else
-                .e2_dx_le:
+                .e2_dx_le: ;; if 2e <= d_x
                         cmp ch, 0
                         jle .over
 
-                        add di, dx
-                        mov bx, di
-                        pop di
-                        add di, display_width
+                        add di, dx            ;; error += d_x
+                        mov bx, di            ;; bx => error
+                        pop di                ;; di => pixel; stack => []
+                        add di, display_width ;; go down
                         dec ch
 
                         jmp .e2_dx_over
                 .e2_dx_else:
-                        mov bx, di
-                        pop di
+                        mov bx, di            ;; bx => error
+                        pop di                ;; di => pixel; stack => []
                 .e2_dx_over:
 
                 jmp .loop
         .over:
-        pop di
+        pop di ;; di => pixel; stack => []
         ret
 
 
